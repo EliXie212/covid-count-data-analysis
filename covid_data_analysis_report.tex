@@ -1,0 +1,449 @@
+\documentclass[a4paper]{article}
+\usepackage[top=1in,bottom=1in,left=1in,right=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{setspace}
+\usepackage{color}
+\usepackage{hyperref}
+\usepackage{placeins}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+
+
+\title{STAT 153 Project}
+\author{Zhendong Xie}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+
+
+
+\noindent\textbf{Executive Summary:}
+
+\begin{quote}
+In this report, we performed analysis and modeled Timeseria's total
+detected COVID-19 counts from the first day of the first diagnosis until present.
+The model structure consists of a linear model with quadric trend and a sarima
+model for the residues. The final prediction is made using a SARIMA trained on
+the most relevant data. The reports provides an overview of analysis process
+from EDA to model fitting to model selection.
+\end{quote}
+
+
+\section{Exploratory Data Analysis}
+In the initially analysis, we plotted the sample and observed a exponential trend
+starting at around day 40 (Figure~\ref{eda:eda}). The sample seems to have a very
+large variance. In order to stabilize the variance,  attempted both a log transform
+and calculate the daily ratio of increase. The resuts are shown in the
+plots(Figure~\ref{eda:log})(Figure~\ref{eda:ratio}). In both plots, we see a
+more clear cutoff at around day 35. Particular in the log day count plots, prior
+to day 35, the data displays an approximate linear increase with small slope.
+After day 35, the data seems to be increasing quadarically. On the other hand,
+the daily ratio of increase does not display any clear trend. we then proceed to
+take the second order difference of the log day counts and the first order
+difference of daily raio of increase and obain the two resulting
+plot (Figure~\ref{diff2:diff2})(Figure~\ref{diff2:ratio}). In both plots,
+the data appears to be stationary. Therefore, it seems resonable to use second
+order difference on the log counts and a first order difference on the daily
+ratio of increase. In the acf
+plots (Figure~\ref{diff2:acf})(Figure~\ref{diff2:acf_ratio}) and
+pacf plots (Figure~\ref{diff2:pacf})(Figure~\ref{diff2:pacf_ratio}),
+we observe the signs of a potential ARMA prcoess after second order differencing,
+therefore a SARIMA model seems fitting for this problem.
+
+
+\begin{figure}[htpb]
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/eda.png}
+  \caption{Day counts}
+  \label{eda:eda}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/eda_ratio.png}
+  \caption{Daily ratio of increase}
+  \label{eda:ratio}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_log.png}
+	\caption{Log day counts }
+	\label{eda:log}
+\end{subfigure}
+\caption{Line plots for the sample}
+\label{eda}
+\end{figure}
+
+
+\begin{figure}[htpb]
+\centering
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_diff2.png}
+	\caption{Log day counts}
+	\label{diff2:diff2}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_diff2_ratio.png}
+	\caption{Daily ratio of increase}
+	\label{diff2:ratio}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_diff2_acf.png}
+	\caption{log day counts}
+	\label{diff2:acf}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_diff2_ratio_acf.png}
+	\caption{daily ratio of increase}
+	\label{diff2:acf_ratio}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_diff2_pacf.png}
+	\caption{log day counts}
+	\label{diff2:pacf}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/eda_diff2_ratio_pacf.png}
+	\caption{daily ratio of increase}
+	\label{diff2:pacf_ratio}
+\end{subfigure}
+
+\caption{Sample plot after second order differencing}
+\label{diff2}
+\end{figure}
+
+
+\section{Models Considered}
+
+As we briefly discuss in the EDA, the basic structure  of the model is a
+combination of second order linear model and a sarima model for the residues.
+We decide to fit two seperate models for log day counts and ratio of daily increase.
+
+\subsection{Model1: Model For Log Day Count (ARIMA(1, 2, 1)}
+As discussed in the EDA, the log day count after second order differencing seems
+to be stationary (Figure~\ref{eda:eda}). The ACF has one significant bar excluding
+the first bar and PACF has one significant
+bar (Figure~\ref{diff2:acf})(Figure~\ref{diff2:pacf}). Therefore, ARIMA(1,2,1)
+seems to be a good fit, which was confirmed by the auto.arima function. Upon using
+SARIMA function to perform fitting, the residual ACF and PACF all are within blue
+bound as calculated from Bartlett's formula, whichmeans the model fits reasonable
+well. During parameter tuning, I realize increasing the value of q to 4 would
+slightly increase the number of significant data points in the Ljung-Box
+statistics , and decrease AIC, BIC and AICc without comprimising the residue ACF
+and PACF (Figure~\ref{model1:s}) (Figure~\ref{model1:p}). Therefore, we decide to
+use ARIMA(1, 2, 4) with all log day counts. The theoretic PACF seems to fit well
+with the sample (Figure~\ref{model1:ac}), but the theoretical ACF doesn't seem to
+fit well with the sample (Figure~\ref{model3:pc}).
+
+
+\begin{figure}[htpb]
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model1_s.png}
+  \caption{Model summary}
+  \label{model1:s}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model1_pacf.png}
+  \caption{Residual PACF}
+  \label{model1:p}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model1_acf_c.png}
+	\caption{Theoretic ACF vs Empirical ACF}
+	\label{model1:ac}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model1_pacf_c.png}
+	\caption{Theoretic PACF vs Empirical PACF}
+	\label{model1:pc}
+\end{subfigure}
+
+\caption{Model Statistics}
+\label{model1}
+\end{figure}
+
+
+\subsection{Model2: Model For Log Day Count After Day 35 (ARIMA(0, 1, 0))}
+As discussioned in the EDA, there seems to be cut-off on log day count plot at
+day 35 (Figure~\ref{eda:eda}) . Given, the nature of the pandemic, it seems
+reasonable to assume the data before day 35 are not representative of the current
+condition because the situations obviously deterioated significantly after day 35.
+Therefore, it seems  beneficial to fit a ARIMA model with only the data after
+day 35. By observing a seperate plot with only data after day 35, it is clear
+that there is linear trend in the process and the noise doesn't appear to
+significant (Figure~\ref{model2:eda}) . Therefore ARIMA(0,1,0) seems to be a good
+fit, which was confirmed by the results of auto.arima function. Upon using SARIMA
+function to perform fitting, the residual ACF and PACF all are within blue bound
+as calculated from
+Bartlett's formula (Figure~\ref{model2:s}) (Figure~\ref{model2:p}),
+which means the model fits reasonable well. Since increasing either p and q would
+comprise the AIC and BIC values. I decided to use  decide to use ARIMA(1, 2, 4)
+with log day counts after day 35. The theoretical ACF and PACF seems to fit well
+with the sample since all the sample ACF and PACF are already within the blue
+band (Figure~\ref{model2:ac}) ,(Figure~\ref{model2:pc})  which confirmed the
+initial assumption that there is not significant noise.
+
+
+
+\begin{figure}[htpb]
+\centering
+
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/eda_35.png}
+  \caption{Model EDA}
+  \label{model2:eda}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model2_s.png}
+  \caption{Model summary}
+  \label{model2:s}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model2_pacf.png}
+  \caption{Residual PACF}
+  \label{model2:p}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model2_acf_c.png}
+	\caption{Theoretic ACF vs Empirical ACF}
+	\label{model2:ac}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model2_pacf_c.png}
+	\caption{Theoretic PACF vs Empirical PACF}
+	\label{model2:pc}
+\end{subfigure}
+
+\caption{Model Statistics}
+\label{model2}
+\end{figure}
+
+\subsection{Mode3: Model For Daily Ratio Count (ARIMA(2, 1, 0)}
+As discussioned in the EDA, an alternative to the log transform is to use the
+daily ratio of increase and the data appear to be statioinary after the first
+order differencing.  The ACF has one significant bar excluding the first bar and
+PACF has one significant bar (Figure~\ref{diff2:acf_ratio})(Figure~\ref{diff2:pacf_ratio}). Therefore, ARIMA(1,1,1) seems to be a good fit. However, the auto.arima function seems to prefer ARIMA(2, 1, 0). Upon fitting using SARIMA function, ARIMA(2, 1, 0)  peforms significantly better than ARIMA(1, 1, 1). Even though both model residuals are with the blue bound as calculated from Bartlett's formula, ARIMA(2, 1, 0) has way more significant points for the Ljung-Box statistics  and has a lower AIC, BIC and AICc (Figure~\ref{model3:s}) (Figure~\ref{model3:pc}) . Therefore,
+we decide to use ARIMA(2, 1, 0) with all the daily ratio increase data. However,
+both the theoretic ACF and PACF don't seem to fit well with the
+sample (Figure~\ref{model3:ac})(Figure~\ref{model3:pc}).
+
+
+\begin{figure}[htpb]
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model3_s.png}
+  \caption{Model summary}
+  \label{model3:s}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model3_pacf.png}
+  \caption{Residual PACF}
+  \label{model3:p}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model3_acf_c.png}
+	\caption{Theoretic ACF vs Empirical ACF}
+	\label{model3:ac}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model3_pacf_c.png}
+	\caption{Theoretic PACF vs Empirical PACF}
+	\label{model3:pc}
+\end{subfigure}
+
+\caption{Model Statistics}
+\label{model3}
+\end{figure}
+
+\subsection{Mode4: Model For Daily Ratio Count After Day 35 (ARIMA(0, 0, 0)}
+As discussioned in the EDA, there seems to be cutoff at day 35 for the daily ratio
+of increase plot (Figure~\ref{eda:ratio}). Therefore I repeat the same process as
+in model 2. The plot for daily ratio of increase after day 35 appears to resemble
+a while noise process without any differencing (Figure~\ref{model4:eda}) . The
+result of auto.arima function confirms this assumption. Upon using SARIMA function
+to fit a white noise process, the residuals are all with the blue bound as
+calculated from Bartlett's formula and all points are statistically significant
+according to Ljung-Box statistics (Figure~\ref{model4:s}) (Figure~\ref{model4:p}).
+The theoretical ACF and PACF seems to fit well witht the sample since all the
+sample ACF and PACF are already within
+the blue band (Figure~\ref{model4:ac}) (Figure~\ref{model4:pc}) , which confirmed
+the initial assumption that the process is already a white noise.
+
+
+
+\begin{figure}[htpb]
+\centering
+
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/eda_35_ratio.png}
+  \caption{Model summary}
+  \label{model4:eda}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model4_s.png}
+  \caption{Model summary}
+  \label{model4:s}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.5\linewidth]{figures/model4_pacf.png}
+  \caption{Residual PACF}
+  \label{model4:p}
+\end{subfigure}
+
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model4_acf_c.png}
+	\caption{Theoretic ACF vs Empirical ACF}
+	\label{model4:ac}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.5\textwidth]{figures/model4_pacf_c.png}
+	\caption{Theoretic PACF vs Empirical PACF}
+	\label{model4:pc}
+\end{subfigure}
+
+\caption{Model Statistics}
+\label{model4}
+\end{figure}
+
+\section{Model Comparison and Selection}\label{sec:selection}
+
+We compares the AIC, BIC, AICc and cross validation error of each model.  Model 2
+seems to have the lowest AIC, BIC, AICc  and cross-validation
+error (Table~\ref{tab:param_est}). Therefore I choose log transform with first
+order differencing training on data after day 35 as our model.
+
+\begin{table}[H]
+\centering
+
+\begin{tabular}{llr}
+	  Model Name & Description  \\ \hline
+	 Model 1 & Log transform and ARIMA(1, 2, 4)  \\
+	Mdoel 2 & Log transform and first order differencing on data after day 35 \\
+		Model 3 & Ratio and ARIMA(2, 1, 0) \\
+		Model 4 & Ratio and white noise on data after day 35 \\
+	\end{tabular}
+	\caption{Description of wach model}
+	\label{tab:desc}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+
+\begin{tabular}{llr}
+	   Model Number & AIC & BIC \\ \hline
+	  1 & -1.174 &  -0.972 \\
+	  2 & -1.632 & -1.540 \\
+	  3 & - 0.687 & -0.552 \\
+          4& -0.999 & -0.768 \\
+\end{tabular}%
+\begin{tabular}{llr}
+	    AICc \\ \hline
+	   1.158\\
+	  -1.628 \\
+	  -0.681 \\
+           -0.950 \\
+\end{tabular}%
+\begin{tabular}{llr}
+	   CV \\ \hline
+	  82630580440 \\
+	 272891536 \\
+          6772357227 \\
+        1206810119 \\
+\end{tabular}
+       \caption{Model AIC, BIC, AICc, Cross-Validation error}
+       \label{tab:param_est}
+\end{table}
+
+
+\section{Results}\label{sec:results}
+After experimenting with fitting SARIMA models on the log counts data and day
+ratio of increase, I decide it's the best to use a ARIMA(0, 1, 0) (first order
+differencing) on the data after the day 35.
+
+
+\begin{align}
+	 \nabla \log{(X_t)} &= W_t  \text{ }\text{ }\text{ }  (t>35)
+	\label{eq:first_arma_model}
+\end{align}
+
+
+\subsection{Prediction}
+By training our model on data after day 35, we use sarima.for function to obtain
+the prediction for $\log{X_t}$. Then the final predication is obtained by taking
+the exponent of the sarima prediction. The left plots shows the SARIMA
+predication $\log{X_t}$ (Figure~\ref{pred:r}) and right figures show the
+prediction for $X_t$ (Figure~\ref{pred:p}) for The model, if works well, will be
+able help to predict the number of COVID-19 cases in the next 10 days or even
+beyond for Timeseria by using the relevant data to model the spread process.
+
+\begin{figure}[htpb]
+\centering
+
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=.6\linewidth]{figures/final_pred_r.png}
+  \caption{Prediction of log counts}
+  \label{pred:r}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width = 0.6\textwidth]{figures/final_pred.png}
+	\caption{Original Data and Predication of next 10 days}
+	\label{pred:p}
+\end{subfigure}
+
+\caption{Model Statistics}
+\label{pred}
+\end{figure}
+
+\text{blog:}
+\begin{itemize}
+\item \url{https://elixie212.github.io/}
+\end{itemize}
+
+
+
+
+\end{document}
