@@ -1,13 +1,11 @@
 .PHONY: clean
-.PHONY: shiny_app
-.PHONY: dash_app
 # SHELL: /bin/bash
 
 ### Clean existing datasets, figures or reports generated in this Makefile for builing
 clean:
 	rm -f derived_data/*.csv
 	rm -f figures/*.png
-	rm -f heart_disease_report.pdf
+	rm -f covid_data_analysis_report.pdf
 	rm -f derived_docs/*
 	rm -f derived_objects/*
 
