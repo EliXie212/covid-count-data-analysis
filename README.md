@@ -6,7 +6,7 @@ Covid Data Analysis with Time Series
 ### Introduction
 This project seeks to analyze and model the total detected COVID-19 counts of
 Timeseria (fake name but real data) from the first day of the first diagnosis
-until present.
+until the April, 2020.
 
 
 
